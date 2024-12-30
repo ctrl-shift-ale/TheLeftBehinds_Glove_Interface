@@ -248,7 +248,7 @@
 
     // idx, 0. 0. 0.521252 14.8 1. 127. (x: 0. to 1. ; y: 0 to 127)
     function flexEnv() { // arguments: flexIdx, x0, y0,...
-        post("flexodyn arguments: ", JSON.stringify(arguments), "\n")
+        //post("flexodyn arguments: ", JSON.stringify(arguments), "\n")
         var flexIdx = arguments[0];
         newFlexoDyns.push(flexIdx); // record the envs that has changed to check which flexo values will have to be re-scaled 
         
@@ -293,7 +293,7 @@
     }
 
     function refresh_flex_env_menu(flexIdx,preset) {
-        post("PORCODDDIO flexIdx ",flexIdx, " PRESET ",preset,"\n")
+        //post("PORCODDDIO flexIdx ",flexIdx, " PRESET ",preset,"\n")
         MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message("clear");
         var keys = dictEnvs.getkeys();
         for (var i=0; i<keys.length; i++) {
@@ -333,11 +333,11 @@
 
 
     function call_flex_env(flexIdx,preset) {
-        post("calling env ",preset, " for flex ",flexIdx," :\n")
+        //post("calling env ",preset, " for flex ",flexIdx," :\n")
         if (dictEnvs.contains(preset)) {
             data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env] = dictEnvs.get(preset);
         
-            post(JSON.stringify(data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env]),"\n");
+            //post(JSON.stringify(data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env]),"\n");
             
             for (var i = 0; i < data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env].length; i+= 2) {
                 var x = data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env][i];
@@ -577,7 +577,7 @@
 
     function idParFlex() { 
         if (initialised) {
-            post("idParFlex, args: ",JSON.stringify(arguments),"\n")
+            //post("idParFlex, args: ",JSON.stringify(arguments),"\n")
             var flexIdx = arguments[0]
             var parIdx = arguments[1];
             var id = arguments[2];
@@ -587,7 +587,7 @@
 
     function minParFlex() { 
         if (initialised) {
-            post("minParFlex, args: ",JSON.stringify(arguments),"\n")
+            //post("minParFlex, args: ",JSON.stringify(arguments),"\n")
             var flexIdx = arguments[0]
             var parIdx = arguments[1];
             var min = arguments[2];
@@ -597,7 +597,7 @@
 
     function maxParFlex() { 
         if (initialised) {
-            post("maxParFlex, args: ",JSON.stringify(arguments),"\n")
+            //post("maxParFlex, args: ",JSON.stringify(arguments),"\n")
             var flexIdx = arguments[0]
             var parIdx = arguments[1];
             var max = arguments[2];
@@ -607,7 +607,7 @@
 
     function expParFlex() { 
         if (initialised) {
-            post("expParFlex, args: ",JSON.stringify(arguments),"\n")
+            //post("expParFlex, args: ",JSON.stringify(arguments),"\n")
             var flexIdx = arguments[0]
             var parIdx = arguments[1];
             var exp = arguments[2];
@@ -617,7 +617,7 @@
 
     function idParFsr() { 
         if (initialised) {
-            post("idParFsr, args: ",JSON.stringify(arguments),"\n")
+            //post("idParFsr, args: ",JSON.stringify(arguments),"\n")
             var fsrIdx = arguments[0]
             var parIdx = arguments[1];
             var id = arguments[2];
