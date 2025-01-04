@@ -5,23 +5,31 @@
 #include <Adafruit_NeoPixel.h>  // For controlling RGB LED
 
 // Configuration
-const int nins = 7;
+const int nins = 8;
 const bool wiFiMode = true; // if false, then use serial to send osc messages
 const bool offlineMode = true; // true -> try to connect to a wi-Fi endlessly at init. false -> switch to serial after reaching the connection timeout Limit
 const int connectionTimeOut_timeLimit = 60000;
 bool debuggingFlexos = false;
 bool debuggingFsrs = false;
-const bool SERIAL_PRINT = false; 
+const bool SERIAL_PRINT = true; 
 unsigned long updateInterval  = 100;
 unsigned long updateBatteryInterval  = 10000;
 
-// WiFi configuration
-const char* ssid_Debbie = "BT-FCACXW";
-const char* password_Debbie = "rb7bQYfghCdPMx";
-const char* ssid_Ale = "EXT2-CommunityFibre10Gb_36CD6";
-const char* password_Ale = "ccucykwier"; 
-const char* ssid_NT = "LeftBehinds";
-const char* password_NT = "DontLeaveMeBehind";
+// Array of SSIDs and passwords
+const char* ssids[] = {"LeftBehinds", "EXT2-CommunityFibre10Gb_36CD6", "Telecom-55619115"};
+const char* passwords[] = {"DontLeaveMeBehind", "ccucykwier", "IrHxJ0C2eGUvbEWlgc8uKTzM"};
+
+// Enum for network indices
+enum NetworkIndex {
+  LEFTBEHINDS = 0,
+  ALE = 1,
+  ELA = 2
+};
+const NetworkIndex selectedNetwork = LEFTBEHINDS;
+
+//const char* ssid_Debbie = "BT-FCACXW";
+//const char* password_Debbie = "rb7bQYfghCdPMx";
+
 
 // Static IP configuration
 IPAddress local_IP(192, 168, 1, 100);  // Static IP for ESP32
@@ -44,29 +52,26 @@ unsigned long lastUpdateTime = 0;
 
 const char HEADER = 'H';   
 
-#define VBAT_PIN A13 // Define the pin connected to VBAT (check your board's pinout)
+#define VBAT_PIN 18 // Define the pin connected to VBAT (check your board's pinout)
 int battery_counter = 0;
 // SENSORS
 
-const int FLEXO_0 = 4;
-const int FLEXO_1 = 10;
-const int FLEXO_2 = 8;
-const int FLEXO_3 = 6;
-const int BUTTON_0 = 9;
-const int BUTTON_1 = 3;
-const int BUTTON_2 = 5;
+const int FLEXO_0 = 1;
+const int FLEXO_1 = 2;
+const int FLEXO_2 = 3;
+const int FLEXO_3 = 4;
+const int BUTTON_0 = 5;
+const int BUTTON_1 = 6;
+const int BUTTON_2 = 7;
+const int BUTTON_3 = 8;
+const int LED_DATA = 18;
+const int LED_PWR = 17;
 
-
-int ins[] = {FLEXO_0, FLEXO_1, FLEXO_2, FLEXO_3, BUTTON_0, BUTTON_1, BUTTON_2};
-int insVal[] = {0, 0, 0, 0, 0, 0, 0};
-int insVal_prev[] = {0, 0, 0, 0, 0, 0, 0};
+int ins[] = {FLEXO_0, FLEXO_1, FLEXO_2, FLEXO_3, BUTTON_0, BUTTON_1, BUTTON_2, BUTTON_3};
+int insVal[] = {0, 0, 0, 0, 0, 0, 0, 0};
+int insVal_prev[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 const int maxADCVal = 8190;
-
-// NeoPixel setup (Adafruit ESP32-S3 Feather)
-#define LED_PIN 33  // Pin for built-in NeoPixel
-#define NUM_PIXELS 1
-Adafruit_NeoPixel strip(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 
 int32_t timestamp = 0;
@@ -89,13 +94,13 @@ void setup() {
 
   // Configure static IP
   WiFi.config(local_IP, gateway, subnet);
-  WiFi.begin(ssid_NT, password_NT);
+  WiFi.begin(ssids[selectedNetwork], passwords[selectedNetwork]);
 
   if (wiFiMode) {
     // Wait for Wi-Fi connection
     int connectionTimeOut_clocker = 0;
     while ( (WiFi.status() != WL_CONNECTED) && (!(connectionTimeout)) ) {  
-      blinkLED(255, 0, 0, 100);  // Red blinking when attempting connection
+      //blinkLED(255, 0, 0, 100);  // Red blinking when attempting connection
  
       delay(500);
       Serial.println("Connecting to WiFi...");
@@ -108,7 +113,7 @@ void setup() {
   
     if (!(connectionTimeout)) {
       wiFiConnected = true;
-      blinkLED(0, 255, 0, 200);  // Green blink for successful connection
+      //blinkLED(0, 255, 0, 200);  // Green blink for successful connection
       Serial.println("WiFi connected!");
       Serial.print("ESP32 IP address: ");
       Serial.println(WiFi.localIP()); // Display the IP address
@@ -136,7 +141,7 @@ void loop() {
     }
 
 }
-
+/*
 void battery() {
     battery_counter += updateInterval;
     if ( (wiFiConnected) && (receivedLaptopIP) && (battery_counter >= updateBatteryInterval) ) {
@@ -159,7 +164,7 @@ void battery() {
         batteryMsg.empty();
     }
 }
-
+*/
 void readSensors() {
     for (int i = 0; i < nins; i++) {
         if (ins[i] != -1) {
@@ -184,9 +189,7 @@ void sendData() {
         Udp.endPacket();
         sensorsMsg.empty();
     } else {
-        if (SERIAL_PRINT) {   
-            Serial.print(insVal[4]);    
-            /*  
+        if (SERIAL_PRINT) {    
             for (int i = 0; i < nins; i++) {
                 Serial.print("PIN ");
                 Serial.print(ins[i]);
@@ -194,7 +197,6 @@ void sendData() {
                 Serial.print(insVal[i]); 
                 Serial.print(" ");
             }
-            */
             Serial.println();
         }
         
