@@ -1,9 +1,11 @@
 
     autowatch = 1;
     outlets = 4; // 0: real time data, 1:refresh triggers, 2:preset data, 3: print
-
+    var DEBUGGING_DATA = true;
+    var DEBUGGING_MAXOBJECTS = true;
+    
     var NFLEX = 2;
-    var FLEX_FINGERS = [1,3];
+    var FLEX_FINGERS = [1,3]; //0:thumb, 1: index, 2: middle, 3: ring
     var NFSR = 3;
     var FSR_FINGERS = [0,1,2];
     
@@ -19,13 +21,13 @@
     var PAR_MAX_DEFAULT = 1.0;
     var PAR_EXP_DEFAULT = 1.0;
 
-    var NFLEXPARS = 4; // number of Live parameter that a flex can control
+    var NFLEXPARS = 4; // number of Live parameter that a single flex can control
     var FLEX_SCALE_OUT = [0.0, 127.0];
     var FLEX_MUTE_DEFAULT = 0;
     var FLEX_ENV_DEFAULT = [0, FLEX_SCALE_OUT[0], 1, FLEX_SCALE_OUT[1]];
 
-    var NFSRPARS = 4; // number of Live parameter that a fsr can control
-    var NFSRNOTEOUTS = 4; // number of Midi note on/ff that a fsr can activate
+    var NFSRPARS = 4; // number of Live parameter that a single fsr can control
+    var NFSRNOTEOUTS = 4; // number of Midi note on/ff that a single fsr can play at once
     var FSR_MUTE_DEFAULT = 0;
     var FSR_GATE_DEFAULT = 0;
     var FSR_NOTEOUT_DEFAULT = -1;
@@ -37,8 +39,10 @@
     var keyClock = "::clock";
     var keyFlex_n = "::flex::"
     var keyFlexEnv = "::env";
-    var keyFlexMute = "::mute";
-    var keyFlexPar_n = "::par::";
+    var keyFsrGate = "::gate";
+    var keyFsrNote = "::note::";
+    var keyMute = "::mute";
+    var keyPar = "::par::";
 
     var data = []
     var dataDefaultStatus = false;
@@ -126,7 +130,6 @@
     var initialised = false;
 
 // INITIALISATION FUNCTIONS
-
     function init_data_array() {
         data.length = 0;
         // ADD CLOCK
@@ -160,7 +163,9 @@
                 data[DATAIDX_fsrs][i][DATAIDX_FSR_noteouts].push(FSR_NOTEOUT_DEFAULT); 
             }
         }
-        printData();
+        if (DEBUGGING_DATA) {
+            printData();
+        }
         return true
     }
 
@@ -221,41 +226,190 @@
     }
 
     function get_maxObj_names() {
+        var DEBUGGING_ARRAY = [];
         var root = this.patcher; 
         // GET VARNAME OF CLOCK NUMBOX
-        MAXOBJECTS[MAXOBJECT_CLOCK_IDX] = root.getnamed("clock_numbox"); 
+        MAXOBJECTS[MAXOBJECT_CLOCK_IDX] = root.getnamed("clock_numbox");
+        if (DEBUGGING_MAXOBJECTS) {
+            post("\n GETTING NAMES OF MAX OBJECTS\n");
+            if (MAXOBJECTS[MAXOBJECT_CLOCK_IDX] != "placeholder_clock") {
+                post("clock box found\n")
+            }
+        } 
         var setup = root.getnamed("subp_setup").subpatcher();
 
         // GET VARNAME OF FLEX PARAM OBJECTS
         var maxObj_flexPar_prefixes = ["id" ,"min", "max", "exp"];
-        for (i=0 ; i<NFLEX; i++) { 
-            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_MUTE_MAIN_IDX] = setup.getnamed("flex_mute_main"+FLEX_FINGERS[i].toString());
-            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_MUTE_IDX] = setup.getnamed("flex_mute_"+FLEX_FINGERS[i].toString());
-            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_ENV_IDX] = setup.getnamed("flex_env_"+FLEX_FINGERS[i].toString());
-            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_ENVMENU_IDX] = setup.getnamed("flex_envMenu_"+FLEX_FINGERS[i].toString());
-            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_DOT_IDX] = setup.getnamed("flex_dot_"+FLEX_FINGERS[i].toString()); 
-            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_SLIDERUI_IDX] = setup.getnamed("flex_slider_ui_"+FLEX_FINGERS[i].toString()); 
+        for (var i=0 ; i<NFLEX; i++) { 
+            DEBUGGING_ARRAY.length = 0;
+            var finger = FLEX_FINGERS[i];
+            if (DEBUGGING_MAXOBJECTS) {
+                post("\n Objects for flex ", i, " (finger ",finger, ")\n");
+            }
+            var found = true;
+            var objectName = "flex_mute_main_"+finger.toString();
+            var object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_MUTE_MAIN_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                DEBUGGING_ARRAY.push(objectName);
+                found = false;
+            }
+
+            objectName = "flex_mute_"+finger.toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_MUTE_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                DEBUGGING_ARRAY.push(objectName);
+                found = false;
+            }
+
+            objectName = "flex_env_"+finger.toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_ENV_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                DEBUGGING_ARRAY.push(objectName);
+                found = false;
+            }
+            
+            objectName = "flex_envMenu_"+finger.toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_ENVMENU_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                DEBUGGING_ARRAY.push(objectName);
+                found = false;
+            }
+
+            objectName = "flex_dot_"+finger.toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_DOT_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                DEBUGGING_ARRAY.push(objectName);
+                found = false;
+            }
+            
+            objectName = "flex_slider_ui_"+finger.toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_DOT_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                DEBUGGING_ARRAY.push(objectName);
+                found = false;
+            }
+            if (DEBUGGING_MAXOBJECTS) {
+                if (found) {
+                    post("\n OBJECTS FOUND FOR FLEX (FINGER ", finger, " )\n");
+                } else {
+                    post("\n OBJECTS NOT FOUND FOR FLEX (FINGER ", finger, "):\n");
+                    for (j=0 ; j<DEBUGGING_ARRAY.length; j++) { 
+                        post(DEBUGGING_ARRAY[j], "\n");
+                    }
+                }   
+                
+            }
+
+            found = true;
+            DEBUGGING_ARRAY.length = 0;
+            if (DEBUGGING_MAXOBJECTS) {
+                post("\n Parameter objects for flex ", i, " (finger ",finger, ")\n");
+            }
+            
             for (var j=0 ; j<NFLEXPARS ; j++) {
                 for (var k=0 ; k<maxObj_flexPar_prefixes.length ; k++) {
-                    //post("VARNAME: ",varname_constructor_flexPar(i,j,maxObj_flexPar_prefixes[k]))
-                    MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_PAR_IDX][j][k] = setup.getnamed(varname_constructor_flexPar(FLEX_FINGERS[i],j,maxObj_flexPar_prefixes[k])); 
-                    //[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_PAR_IDX][parIdx][MAXOBJECT_FLEX_PAR_ID_IDX]
+                    objectName = varname_constructor_flexPar(finger,j,maxObj_flexPar_prefixes[k]); 
+                    object = setup.getnamed(objectName); 
+                    if (typeof(object == "undefined")) {
+                        MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_PAR_IDX][j][k] = object;
+                    } else if (DEBUGGING_MAXOBJECTS) {
+                        found = false;
+                        DEBUGGING_ARRAY.push(objectName);
+                    }
                 }
+            }
+            if (DEBUGGING_MAXOBJECTS) {
+                if (found) {
+                    post("\n PARAMETER OBJECTS FOUND FOR FLEX (FINGER ", finger, " )\n");
+                } else {
+                    post("\n PARAMETER OBJECTS NOT FOUND FOR FLEX (FINGER ", finger, "):\n");
+                    for (j=0 ; j<DEBUGGING_ARRAY.length; j++) { 
+                        post(DEBUGGING_ARRAY[j], "\n");
+                    }
+                }
+                
             }
         }
 
-        // GET VARNAME OF FSR PARAM OBJECTS
+        // GET VARNAME OF FSR OBJECTS
+        finger =FSR_FINGERS[i];
+        found = true;
+        if (DEBUGGING_MAXOBJECTS) {
+            post("\n Parameter objects for fsr ", i, " (finger ",finger, ")\n");
+        }
         for (i=0 ; i < NFSR; i++) {
+            objectName = "fsr_mute_main_"+FSR_FINGERS[i].toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_MUTE_MAIN_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                found = false;
+            }
             MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_MUTE_MAIN_IDX] = setup.getnamed("fsr_mute_main"+FSR_FINGERS[i].toString());
+            
+            objectName = "fsr_mute_"+FSR_FINGERS[i].toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_MUTE_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                found = false;
+            }
             MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_MUTE_IDX] = setup.getnamed("fsr_mute_"+FSR_FINGERS[i].toString());
+            
+            objectName = "fsr_gate_slider_"+FSR_FINGERS[i].toString();
+            object = setup.getnamed(objectName);
+            if (typeof(object == "undefined")) {
+                MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_MUTE_IDX] = object;
+            } else if (DEBUGGING_MAXOBJECTS) {
+                found = false;
+            }
             MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_GATE_IDX] = setup.getnamed("fsr_gate_slider_"+FSR_FINGERS[i].toString());
-           
+            
+            if (DEBUGGING_MAXOBJECTS) {
+                if (found) {
+                    post("\n OBJECTS FOUND FOR FSR (FINGER ", finger, " )\n");
+                } else {
+                    post("\n SOME OBJECTS NOT FOUND FOR FSR (FINGER ", finger, " )\n"); 
+                }     
+            }
+
+            found = true;
+            if (DEBUGGING_MAXOBJECTS) {
+                post("\n Parameter objects for fsr ", i, " (finger ",finger, ")\n");
+            }
+            
             for (j=0 ; j<NFSRPARS ; j++) {
-                MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_PAR_IDX][j] = setup.getnamed(varname_constructor_fsrPar(FSR_FINGERS[i],j,"id")); 
-                //[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_PAR_IDX][parIdx][MAXOBJECT_FLEX_PAR_ID_IDX]
+                object = setup.getnamed(varname_constructor_fsrPar(FSR_FINGERS[i],j,"id")); 
+                if (typeof(object == "undefined")) {
+                    MAXOBJECTS[MAXOBJECT_FSRS_IDX][i][MAXOBJECT_FSR_PAR_IDX][j] = object;
+                } else if (DEBUGGING_MAXOBJECTS) {
+                    found = false;
+                }
+            }
+            if (DEBUGGING_MAXOBJECTS) {
+                if (found) {
+                    post("\n PARAMETER OBJECTS FOUND FOR FSR (FINGER ", finger, " )\n");
+                } else {
+                    post("\n SOME PARAMETER OBJECTS NOT FOUND FOR FSR (FINGER ", finger, " )\n"); 
+                }   
+                
             }
         }
-        printMaxObjs()
+        if (DEBUGGING_MAXOBJECTS) {
+            printMaxObjs()
+        }
     }
 
     function init() {
@@ -327,13 +481,11 @@
         printData();
     }
 
-
-    // ENV
-
+// FLEX ENV FUNCTIONS
     // idx, 0. 0. 0.521252 14.8 1. 127. (x: 0. to 1. ; y: 0 to 127)
     function flexEnv() { // arguments: flexIdx, x0, y0,...
         //post("flexodyn arguments: ", JSON.stringify(arguments), "\n")
-        var flexIdx = arguments[0];
+        var flexIdx = FLEX_FINGERS.indexOf(arguments[0]);
         newFlexoDyns.push(flexIdx); // record the envs that has changed to check which flexo values will have to be re-scaled 
         
         data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env].length = 0; 
@@ -342,12 +494,13 @@
         }
         flexosCurrentEnv[flexIdx] = "none"; // signals that the env has been edited meaning that no preset has been selected (in case user saves scene)
         
-        printData();
-
+        if (DEBUGGING_DATA) {
+            printData();
+        }
     }
 
     function saveEnv() {
-        var flexIdx = arguments[0];
+        var flexIdx = FLEX_FINGERS.indexOf(arguments[0]);
         post("saveEnv flexo: ",flexIdx,"\n")
         var preset = "";
         for (var argument = 1; argument < arguments.length; argument++) {
@@ -363,12 +516,14 @@
     }
 
     function autosaveEnv(flexIdx,preset) {
-        write_env_to_dict(flexIdx,preset);
+        var idx = FLEX_FINGERS.indexOf(flexIdx);
+        write_env_to_dict(idx,preset);
     }
 
     function write_env_to_dict(flexIdx,preset) {
-        dictEnvs.replace(preset, data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env]);
-        flexosCurrentEnv[flexIdx] = preset;
+        var dataIdx = FLEX_FINGERS.indexOf(flexIdx);
+        dictEnvs.replace(preset, data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_env]);
+        flexosCurrentEnv[dataIdx] = preset;
         outlet(OUTLET_PRINT,"FLEX ENV " + preset + " stored succesfully");
         //outlet(OUTLET_REFRESH, "refresh_env_presets", -1);
         
@@ -389,8 +544,6 @@
     function writeEnvToHistory(flexIdx,preset) {
         dictHistory.replace("lastEnvFlex_" + flexIdx.toString(),preset)
     }
-
-
 
     function loadEnv() {
         var flexIdx = arguments[0]; 
@@ -440,16 +593,6 @@
         refresh_flex_env_menu(flexIdx,preset)
     }
 
-    /*
-    function set_flex_env_menus() {
-        for (var i=0; i < flexosCurrentEnv.length; i++) {
-            var preset = flexosCurrentEnv[i];
-            if (preset != "none") {
-                outlet(OUTLET_REFRESH, ["set_flex_env_menu",i,preset]);
-            }
-        }
-    }
-    */
     function deleteEnv() {
         var preset = "";
         for (var argument = 0; argument < arguments.length; argument++) {
@@ -472,8 +615,7 @@
         
     }
 
-    // SCENE
-
+// CALL/SAVE SCENE FUNCTIONS
     function loadScene(scene) {
         if (dictPresets.contains(scene)) {
             //GET CLOCK
@@ -485,7 +627,7 @@
                 var flexEnvPreset = dictPresets.get(key_constructor_flexEnv(scene,i)); 
                 load_env(i,flexEnvPreset)
 
-                var mute =  dictPresets.get(keyPrefix + keyFlexMute);
+                var mute =  dictPresets.get(keyPrefix + keyMute);
                 refresh_flex_mute(i,mute);   
                 
                 // GET PARAMETERS 
@@ -514,7 +656,7 @@
         data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_params][parIdx] = arr;
     }
 
-    // SEND DATA TO MAX OBJECTS
+// SEND DATA TO MAX OBJECTS FUNCTIONS
     function refresh_clock(val) { 
         MAXOBJECTS[MAXOBJECT_CLOCK_IDX].message(val);
     }
@@ -569,17 +711,17 @@
         outlet(1, "refresh");
     }
 
-    // CONSTRUCTORS
+// CONSTRUCTORS
     function key_constructor_flexEnv(scene,flexIdx) { 
         return scene + keyFlex_n + flexIdx.toString() + keyFlexEnv;
     }
 
     function key_constructor_flexMute(scene,flexIdx) {
-        return scene + keyFlex_n + flexIdx.toString() + keyFlexMute;
+        return scene + keyFlex_n + flexIdx.toString() + keyMute;
     }
 
     function key_constructor_flexPar(scene,flexIdx,parIdx) { 
-        return scene + keyFlex_n + flexIdx.toString() + keyFlexPar_n + parIdx.toString();
+        return scene + keyFlex_n + flexIdx.toString() + keyPar + parIdx.toString();
     }
 
     function varname_constructor_flexPar(flexIdx,parIdx,parName) {
@@ -596,8 +738,7 @@
 
 
 
-    //REAL-TIME DATA
-
+//REAL-TIME DATA PROCESSING FUNCTIONS
     function flexovals() {
         if (initialised) {
             //post("flexovals args: " , JSON.stringify(arguments),"\n")
@@ -660,7 +801,7 @@
         flexosCurveExp = ( (v >= 0.125) && (v <= 8) ) ? v : flexosCurveExp;
     }
 
-    // UI TO DATA
+    // UI TO DATA FUNCTIONS
     function muteFlex() { 
         if (initialised) {
             var finger = arguments[0];
@@ -754,21 +895,15 @@
         }
     }
 
-
+// UTILITY FUNCTIONS
     function num_to_alphabetical(n) {
         var nToAlphab = ["A","B","C","D","E","F","G","H"];
         return nToAlphab[n];
     }
 
-
-
-
-
     function scale(x, in_low,in_high, out_low, out_high) {
         return ((x-in_low)/(in_high-in_low) == 0) ? out_low : (((x-in_low)/(in_high-in_low)) > 0) ? out_low + (out_high-out_low) * ((x-in_low)/(in_high-in_low)) : ( out_low + (out_high-out_low) * -(((-x+in_low)/(in_high-in_low))));
     }
-
-
 
     function scaleExp(x, in_low,in_high, out_low, out_high, exp) {
         return ((x-in_low)/(in_high-in_low) == 0) ? out_low 
@@ -777,53 +912,17 @@
             : ( out_low + (out_high-out_low) * -(Math.pow(((-x+in_low)/(in_high-in_low)),exp)));
     }
 
+// PRINT FUNCTIONS
     function printData() {
         post("\n PRINT DATA:\n")
         post(JSON.stringify(data),"\n");
     }
 
     function printMaxObjs() {
-        post("\n MAX OBJECTS:\n")
-        post("\n",JSON.stringify(MAXOBJECTS),"\n");
+        post("\n MAXOBJECTS TABLE: \n");
+        post(JSON.stringify(MAXOBJECTS),"\n");
     }
 
-    /*
-    function fsrgate() {
-        var idx = arguments[0];
-        var val = arguments[1];
-        if (idx == -1) {
-            data[DATAIDX_fsrGate] = [val,val,val,val,val];
-        } else {
-            data[DATAIDX_fsrGate] = val;
-        }
-        printData();
-    }
-
-    function fsrgatelist() {
-        for (var argument = 0; argument < arguments.length; argument++) {
-            data[DATAIDX_fsrGate][argument] = arguments[argument];
-        }
-        printData();
-    }
-
-    function fsrhyst() {
-        var idx = arguments[0];
-        var val = arguments[1];
-        if (idx == -1) {
-            data[DATAIDX_fsrHyst] = [val,val,val,val,val];
-        } else {
-            data[DATAIDX_fsrHyst][idx] = val;
-        }
-        printData();
-    }   
-
-    function fsrhystlist() {
-        for (var argument = 0; argument < arguments.length; argument++) {
-            data[DATAIDX_fsrHyst][argument] = arguments[argument];
-        }
-        printData();
-    }
-        */
 
 
             
