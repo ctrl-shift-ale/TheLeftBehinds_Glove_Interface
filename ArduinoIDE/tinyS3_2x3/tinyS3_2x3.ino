@@ -11,11 +11,13 @@
 const int N_INS = 5;
 const bool WIFI_MODE = true; // if false, then use serial to send osc messages
 const bool OFFLINE_MODE = false; // false -> try to connect to a wi-Fi endlessly at init. true -> switch to serial after reaching the connection timeout Limit
+const bool SAVE_POWER_AFTER_CONNECTION_TIMEOUT = true;
 const int CONNECTION_TIMEOUT_MS = 120000;
-const bool IDLE_MODE = false;
+const bool IDLE_MODE = true;
 const int IDLEMODE_CHECK_INTERVAL_MS = 30000;
-const bool SERIAL_PRINT = false; 
-const bool BATTERY_PRINT = false;
+const int HYBERNATE_TIME_MS = 60000;
+const bool SERIAL_PRINT = true; 
+const bool BATTERY_PRINT = true;
 unsigned long REFRESH_MS  = 100;
 unsigned long REFRESH_BATTERY_MS = 120000;
 const uint8_t LED_BRIGHTNESS = 255/3;
@@ -121,11 +123,22 @@ void setup() {
         delay(wiFiLoop_ms - LEDblink_ms);
         
         Serial.println("Connecting to WiFi...");
-        connectionTimeOut_clocker = connectionTimeOut_clocker + wiFiLoop_ms;
-        if ( (OFFLINE_MODE) && (connectionTimeOut_clocker >= CONNECTION_TIMEOUT_MS) ) {
-            connectionTimeout = true;
-            Serial.println("Connection TimeOut. Working in offline mode (OSC via SERIAL)");
+        connectionTimeOut_clocker = connectionTimeOut_clocker + wiFiLoop_ms; //hybernate
+        if (connectionTimeOut_clocker >= CONNECTION_TIMEOUT_MS) {
+            
+            if (SAVE_POWER_AFTER_CONNECTION_TIMEOUT) {
+              Serial.println("Connection timeout. Hybernating...");
+              hybernate();
+              Serial.println("Waking up from hybernation...");
+              connectionTimeOut_clocker = 0;
+            }
+
+            if (OFFLINE_MODE)  {
+                connectionTimeout = true;
+                Serial.println("Connection TimeOut. Working in offline mode (OSC via SERIAL)");
+            }
         }
+        
     }
   
     if (!(connectionTimeout)) {
@@ -214,6 +227,13 @@ bool checkForWakeupMessage() {
     return false; // No `/wakeup` message received
 }
 
+void hybernate() {
+    if (!(wiFiConnected)) {
+        setCpuFrequencyMhz(IDLE_CPU_FREQUENCY);
+        delay(HYBERNATE_TIME_MS);
+        setCpuFrequencyMhz(NORMAL_CPU_FREQUENCY);   
+    } 
+}
 void setIdleMode() {
     setCpuFrequencyMhz(IDLE_CPU_FREQUENCY);
     if ((wiFiConnected) && (receivedLaptopIP)) {
@@ -275,48 +295,50 @@ void battery() {
     batteryTimer += REFRESH_MS;
     if (batteryTimer >= REFRESH_BATTERY_MS) {
         batteryPercentage = vToPercentage(voltage_sum/batteryCounter);
-        if (BATTERY_PRINT) {
-            Serial.print("Battery Voltage: ");
-            Serial.print(voltage_sum/batteryCounter);
-            Serial.println(" V");
-            Serial.print("Battery Percentage: ");
-            Serial.println(batteryPercentage);
+    
+        if ( (wiFiConnected) && (receivedLaptopIP) ) { 
+            sendBatteryPercentage();
+            if (BATTERY_PRINT) {
+                Serial.print("Battery Voltage: ");
+                Serial.print(voltage_sum/batteryCounter);
+                Serial.println(" V");
+                Serial.print("Battery Percentage: ");
+                Serial.println(batteryPercentage);
+            }
         }
-        //reset 
+         //reset 
         batteryTimer = 0;
         batteryCounter = 0;
         voltage_sum = 0;
-        
-        if ( (wiFiConnected) && (receivedLaptopIP) ) { 
-            sendBatteryPercentage();
-        }
     }
 }
 
 // Function to convert battery voltage to battery charge %
 float vToPercentage(float voltage) {
+  /*
     if (voltage < voltageMinMeasurement) {
         voltageMinMeasurement = voltage;
     }
+    */
     int counter = 0;
-    arrLength = sizeof(BATTERY_VOLTAGE_LOOKUP) / sizeof(BATTERY_VOLTAGE_LOOKUP[0]);
+    int arrLength = sizeof(BATTERY_VOLTAGE_LOOKUP) / sizeof(BATTERY_VOLTAGE_LOOKUP[0]);
 
-    if (voltageMinMeasurement < BATTERY_VOLTAGE_LOOKUP[arrLength - 1]) {
-        return 0
+    if (voltage < BATTERY_VOLTAGE_LOOKUP[arrLength - 1]) {
+        return 0;
     }
-    while (voltageMinMeasurement < BATTERY_VOLTAGE_LOOKUP[counter]) && (counter < arrLength) {
+    while ((voltage < BATTERY_VOLTAGE_LOOKUP[counter]) && (counter < arrLength)) {
         counter ++ ;
     }
     if (counter == 0) {
-        return 100
+        return 100;
     }
     
     // convert voltage to percentage by interpolating range values taken from lookup table
     int percentage = 100;
     float vMin = BATTERY_VOLTAGE_LOOKUP[counter];
     float vMax = BATTERY_VOLTAGE_LOOKUP[counter - 1];
-    percentage = 100 - (counter * 10));
-    float interpolation = ((voltageMinMeasurement - vMin) / (vMax - vMin)) * 10;
+    percentage = 100 - (counter * 10);
+    float interpolation = ((voltage - vMin) / (vMax - vMin)) * 10;
     percentage += int(interpolation);
 
     return percentage;
@@ -437,10 +459,6 @@ void receiveHandshake(OSCMessage &msg, int addrOffset) {
     blinkLED(0, 0, 255, 5, 200);  // Blue blinking when attempting handshake
     ums3.setPixelPower(false); //turn leds off to save power
 
-    if (IDLE_MODE) {
-        delay(100);
-        idleMode();
-    }
 }
 
 // Function to handle incoming ping message
