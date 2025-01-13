@@ -4,7 +4,7 @@ from pythonosc import osc_message_builder
 from pythonosc import udp_client
 import socket
 
-DEBUGGING = "BATTERY_TEST" #"OFF", "SENSORS", "NO_SENSORS", "ALL"
+DEBUGGING = "NO_SENSORS" #"OFF", "SENSORS", "NO_SENSORS", "ALL"
 
 esp32_ip = "192.168.1.100" # Static IP of the ESP32 device
 esp32_receive_port = 8000  # Port that the ESP32 listens for handshake request
