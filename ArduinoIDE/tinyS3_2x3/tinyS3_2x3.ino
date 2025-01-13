@@ -11,15 +11,18 @@
 const int N_INS = 5;
 const bool WIFI_MODE = true; // if false, then use serial to send osc messages
 const bool OFFLINE_MODE = false; // false -> try to connect to a wi-Fi endlessly at init. true -> switch to serial after reaching the connection timeout Limit
-const bool SAVE_POWER_AFTER_CONNECTION_TIMEOUT = true;
+const bool HYBERNATE_MODE = true; // goes in power save mode if wi-Fi connection timeout, with periodic polling (HYBERNATE_TIME_MS) until connection is established
+const bool IDLE_MODE = true; //  goes in power save mode, with periodic polling (IDLEMODE_TIME_MS) until OSC message switches to a different permormance mode.
+
 const int CONNECTION_TIMEOUT_MS = 120000;
-const bool IDLE_MODE = true;
-const int IDLEMODE_CHECK_INTERVAL_MS = 30000;
+const int IDLEMODE_TIME_MS = 30000;
 const int HYBERNATE_TIME_MS = 60000;
-const bool SERIAL_PRINT = true; 
-const bool BATTERY_PRINT = true;
 unsigned long REFRESH_MS  = 100;
 unsigned long REFRESH_BATTERY_MS = 120000;
+
+const bool SERIAL_PRINT = false; 
+const bool BATTERY_PRINT = false;
+
 const uint8_t LED_BRIGHTNESS = 255/3;
 const int IDLE_CPU_FREQUENCY = 80;
 const int LO_POWER_CPU_FREQUENCY = 160;
@@ -35,7 +38,7 @@ enum NetworkIndex {
   OTHERNETWORK_A = 1,
   OTHERNETWORK_B = 2
 };
-const NetworkIndex selectedNetwork = OTHERNETWORK_A;
+const NetworkIndex selectedNetwork = LEFTBEHINDS;
 
 // Static IP configuration
 IPAddress local_IP(192, 168, 1, 100);  // Static IP for ESP32
@@ -126,7 +129,7 @@ void setup() {
         connectionTimeOut_clocker = connectionTimeOut_clocker + wiFiLoop_ms; //hybernate
         if (connectionTimeOut_clocker >= CONNECTION_TIMEOUT_MS) {
             
-            if (SAVE_POWER_AFTER_CONNECTION_TIMEOUT) {
+            if (HYBERNATE_MODE) {
               Serial.println("Connection timeout. Hybernating...");
               hybernate();
               Serial.println("Waking up from hybernation...");
@@ -171,7 +174,7 @@ void loop() {
 void idleMode() {
     Serial.println("Entering power save (idle) with periodic polling...");
     setIdleMode();
-    delay((uint32_t)IDLEMODE_CHECK_INTERVAL_MS);
+    delay((uint32_t)IDLEMODE_TIME_MS);
 
     while (true) {
         
@@ -193,7 +196,7 @@ void idleMode() {
         }
         //setIdleMode();
         Serial.println("No wake up message received. Keep staying in power save mode");
-        delay(IDLEMODE_CHECK_INTERVAL_MS);       
+        delay(IDLEMODE_TIME_MS);       
     }
 }
 
