@@ -23,6 +23,7 @@
 
     var NFLEXPARS = 4; // number of Live parameter that a single flex can control
     var FLEX_SCALE_OUT = [0.0, 127.0];
+    var FLEXOS_CURVE_EXP = 4;
     var FLEX_MUTE_DEFAULT = 0;
     var FLEX_ENV_DEFAULT = [0, FLEX_SCALE_OUT[0], 1, FLEX_SCALE_OUT[1]];
 
@@ -71,7 +72,6 @@
     var curvedIns = [0,0,0,0];
     var flexosCurrentEnv = [];
 
-    var flexosCurveExp = 2;
 
     //MAX OBJECTS
     var MAXOBJECTS = [];
@@ -295,7 +295,7 @@
             objectName = "flex_slider_ui_"+finger.toString();
             object = setup.getnamed(objectName);
             if (typeof(object == "undefined")) {
-                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_DOT_IDX] = object;
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][i][MAXOBJECT_FLEX_SLIDERUI_IDX] = object;
             } else if (DEBUGGING_MAXOBJECTS) {
                 DEBUGGING_ARRAY.push(objectName);
                 found = false;
@@ -541,6 +541,7 @@
         MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message(["set",preset]);
         
     }
+    
     function writeEnvToHistory(flexIdx,preset) {
         dictHistory.replace("lastEnvFlex_" + flexIdx.toString(),preset)
     }
@@ -740,6 +741,7 @@
 
 //REAL-TIME DATA PROCESSING FUNCTIONS
     function flexovals() {
+        //post("FUNCTION FLEXOVALS \n");
         if (initialised) {
             //post("flexovals args: " , JSON.stringify(arguments),"\n")
             
@@ -752,7 +754,7 @@
                         valIn,
                         flexosRange[flexIdx][0],flexosRange[flexIdx][1],
                         0,1,
-                        flexosCurveExp); 
+                        FLEXOS_CURVE_EXP); 
                     //post("curvedIn: ", curvedIn, "\n")
                     curvedIns[flexIdx] = curvedIn;
 
@@ -798,7 +800,7 @@
     }
 
     function flexoscurve(v) {
-        flexosCurveExp = ( (v >= 0.125) && (v <= 8) ) ? v : flexosCurveExp;
+        FLEXOS_CURVE_EXP = ( (v >= 0.125) && (v <= 8) ) ? v : FLEXOS_CURVE_EXP;
     }
 
     // UI TO DATA FUNCTIONS
