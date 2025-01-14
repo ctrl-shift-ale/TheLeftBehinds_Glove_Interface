@@ -3,6 +3,7 @@
     outlets = 4; // 0: real time data, 1:refresh triggers, 2:preset data, 3: print
     var DEBUGGING_DATA = true;
     var DEBUGGING_MAXOBJECTS = true;
+    var DEBUGGING_SCENE = true;
     
     var NFLEX = 2;
     var FLEX_FINGERS = [1,3]; //0:thumb, 1: index, 2: middle, 3: ring
@@ -141,9 +142,9 @@
             data[DATAIDX_flexs].push([]); //data[CLOCK_DEFAULT,[[]]]
             data[DATAIDX_flexs][i].push(FLEX_MUTE_DEFAULT); //data[CLOCK_DEFAULT,[ [0] ] ]
             data[DATAIDX_flexs][i].push(FLEX_ENV_DEFAULT); //data[CLOCK_DEFAULT,[ [0,[0,0,1,127]] ] ]
-            
-            for (var _=0 ; _<NFLEXPARS ; _++) {
-                data[DATAIDX_flexs][i].push(
+            data[DATAIDX_flexs][i].push([]); //data[CLOCK_DEFAULT,[[]]]
+            for (var _=0 ; _<NFLEXPARS ; _++) { //data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_max]
+                data[DATAIDX_flexs][i][DATAIDX_FLEX_params].push(
                     [PAR_NOID_DEFAULT,PAR_MIN_DEFAULT,PAR_MAX_DEFAULT,PAR_EXP_DEFAULT] //data[CLOCK_DEFAULT,[ [0,[0,0,1,127] , [PAR_NOID_DEFAULT,PAR_MIN_DEFAULT,PAR_MAX_DEFAULT,PAR_EXP_DEFAULT] ] ] ]
                 )
             }
@@ -520,25 +521,25 @@
         write_env_to_dict(idx,preset);
     }
 
-    function write_env_to_dict(flexIdx,preset) {
-        var dataIdx = FLEX_FINGERS.indexOf(flexIdx);
+    function write_env_to_dict(dataIdx,preset) {
+        //var dataIdx = FLEX_FINGERS.indexOf(flexIdx);
         dictEnvs.replace(preset, data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_env]);
         flexosCurrentEnv[dataIdx] = preset;
         outlet(OUTLET_PRINT,"FLEX ENV " + preset + " stored succesfully");
         //outlet(OUTLET_REFRESH, "refresh_env_presets", -1);
         
-        refresh_flex_env_menu(flexIdx,preset)
+        refresh_flex_env_menu(dataIdx,preset)
         //set_flex_env_menus();
     }
 
-    function refresh_flex_env_menu(flexIdx,preset) {
-        //post("PORCODDDIO flexIdx ",flexIdx, " PRESET ",preset,"\n")
-        MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message("clear");
+    function refresh_flex_env_menu(dataIdx,preset) {
+        //post("PORCODDDIO dataIdx ",dataIdx, " PRESET ",preset,"\n")
+        MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][dataIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message("clear");
         var keys = dictEnvs.getkeys();
         for (var i=0; i<keys.length; i++) {
-            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message(["append",keys[i]]);
+            MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][dataIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message(["append",keys[i]]);
         }
-        MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message(["set",preset]);
+        MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][dataIdx][MAXOBJECT_FLEX_ENVMENU_IDX].message(["set",preset]);
         
     }
     
@@ -548,50 +549,52 @@
 
     function loadEnv() {
         var flexIdx = arguments[0]; 
+        var dataIdx = FLEX_FINGERS.indexOf(flexIdx);
         var preset = "";
         for (var argument = 1; argument < arguments.length; argument++) {
             if (arguments[argument]!= "symbol") {
                 preset += arguments[argument];
             }
         }
-        post("load Env: ",preset, "for flex: ",flexIdx,"\n")
-        call_flex_env(flexIdx,preset);
-        writeEnvToHistory(flexIdx,preset);
+        
+        post("load Env: ",preset, "for flex: ",flexIdx, " in data idx: ",dataIdx,"\n")
+        call_flex_env(dataIdx,preset);
+        writeEnvToHistory(dataIdx,preset);
         newFlexoDyns.push(flexIdx); // record the envs that has changed to check which flexo values will have to be re-scaled 
 
     }
 
-    function load_env(flexIdx,name) { 
-        post("load Env: ",name, "for flex: ",flexIdx,"\n")
-        call_flex_env(flexIdx,name);
-        writeEnvToHistory(flexIdx,name);
+    function load_env(dataIdx,name) { 
+        post("load Env: ",name, "for flex data idx: ",dataIdx,"\n")
+        call_flex_env(dataIdx,name);
+        writeEnvToHistory(dataIdx,name);
         newFlexoDyns.push(name); // record the envs that has changed to check which flexo values will have to be re-scaled 
 
     }
 
 
-    function call_flex_env(flexIdx,preset) {
-        //post("calling env ",preset, " for flex ",flexIdx," :\n")
+    function call_flex_env(dataIdx,preset) {
+        post("calling env ",preset, " for flex data idx ",dataIdx," :\n")
         if (dictEnvs.contains(preset)) {
-            data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env] = dictEnvs.get(preset);
+            data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_env] = dictEnvs.get(preset);
         
-            //post(JSON.stringify(data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env]),"\n");
+            //post(JSON.stringify(data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_env]),"\n");
             
-            for (var i = 0; i < data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env].length; i+= 2) {
-                var x = data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env][i];
-                var y = data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_env][i+1];
+            for (var i = 0; i < data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_env].length; i+= 2) {
+                var x = data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_env][i];
+                var y = data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_env][i+1];
                 if (i == 0) {
-                    MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_ENV_IDX].message("clear");
-                    //outlet(OUTLET_RT_DATA,["dynUI",flexIdx, "env", "new", x, y]); // first point of the env also send message "clear" to UI
+                    MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][dataIdx][MAXOBJECT_FLEX_ENV_IDX].message("clear");
+                    //outlet(OUTLET_RT_DATA,["dynUI",dataIdx, "env", "new", x, y]); // first point of the env also send message "clear" to UI
                 } 
-                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][flexIdx][MAXOBJECT_FLEX_ENV_IDX].message([x,y]);
-                    //outlet(OUTLET_RT_DATA,["dynUI",flexIdx, "env", x, y]);      
+                MAXOBJECTS[MAXOBJECT_FLEXOS_IDX][dataIdx][MAXOBJECT_FLEX_ENV_IDX].message([x,y]);
+                    //outlet(OUTLET_RT_DATA,["dynUI",dataIdx, "env", x, y]);      
             }
         } else {
             outlet(OUTLET_PRINT,"ERROR : CANNOT FIND ENV " + preset);
         }
-        flexosCurrentEnv[flexIdx] = preset;
-        refresh_flex_env_menu(flexIdx,preset)
+        flexosCurrentEnv[dataIdx] = preset;
+        refresh_flex_env_menu(dataIdx,preset)
     }
 
     function deleteEnv() {
@@ -617,27 +620,42 @@
     }
 
 // CALL/SAVE SCENE FUNCTIONS
-    function loadScene(scene) {
+    function loadScene() {
+        post("FUNCTION LOAD SCENE");
+        // scene name
+        var scene = "";
+        for (var i = 0; i < arguments.length; i++) {
+            if (arguments[i]!= "symbol") {
+                scene += arguments[i];
+            }
+        }
+        post(scene,"\n")
         if (dictPresets.contains(scene)) {
+            post(scene, "scene found \n");
             //GET CLOCK
             data[DATAIDX_clock] = dictPresets.get(scene + keyClock);
-            refresh_clock();
+            refresh_clock(data[DATAIDX_clock]);
+            post("clock refreshed: ", data[DATAIDX_clock], "\n");
             //FOR EACH FLEX
-            for (var i = 0; i < NFLEX.length; i++) {
+            for (var i = 0; i < NFLEX; i++) {
                 // GET NAME OF THE ENV PRESET 
                 var flexEnvPreset = dictPresets.get(key_constructor_flexEnv(scene,i)); 
+                post("flex data idx ", i, ", env preset: ", flexEnvPreset, "\n");
                 load_env(i,flexEnvPreset)
 
-                var mute =  dictPresets.get(keyPrefix + keyMute);
+                var mute =  dictPresets.get(key_constructor_flexMute(scene,i));
                 refresh_flex_mute(i,mute);   
                 
                 // GET PARAMETERS 
-                for (var j = 0; j < NFLEXPARS.length; j++) {
-                    var parArr = dictPresets.get(key_constructor_flexPar(scene,i,j)); // array
-                    
-                    flex_par_to_data(i,j,parArr);
+                for (var j = 0; j < NFLEXPARS; j++) {
+                    post("par ", 0, ", env preset: ", flexEnvPreset, "\n");
+                    var id = dictPresets.get(key_constructor_flexPar(scene,i,j) + "::id"); 
+                    var min = dictPresets.get(key_constructor_flexPar(scene,i,j) + "::min"); 
+                    var max = dictPresets.get(key_constructor_flexPar(scene,i,j) + "::max"); 
+                    var exp = dictPresets.get(key_constructor_flexPar(scene,i,j) + "::exp"); 
+                    recalled_flex_par_to_data(i,j,[id,min,max,exp]);
                 
-                    refresh_flex_param(i,j,parArr);
+                    refresh_flex_param(i,j,[id,min,max,exp]);
                 }
             }
             
@@ -653,7 +671,7 @@
         dictHistory.replace("lastScene",scene);
     }
 
-    function flex_par_to_data(flexIdx,parIdx,arr) {
+    function recalled_flex_par_to_data(flexIdx,parIdx,arr) {
         data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_params][parIdx] = arr;
     }
 
@@ -674,19 +692,29 @@
     }
 
     function saveScene() {
+        
+        // scene name
         var scene = "";
         for (var i = 0; i < arguments.length; i++) {
             if (arguments[i]!= "symbol") {
                 scene += arguments[i];
             }
         }
+        if (DEBUGGING_SCENE) {
+            post("SAVING SCENE: ", scene, "\n")
+        }
+        // flex envs
         for (i = 0; i < flexosCurrentEnv.length; i++) {
-            if ( (flexosCurrentEnv[i] === "none") || (!(dictEnvs.contains(flexosCurrentEnv[i])) ) ) {
+            if (DEBUGGING_SCENE) {
+                post("Flex data idx ", i, "current env: ", flexosCurrentEnv[i],"\n");
+            }
+            if ( (flexosCurrentEnv[i] == "none") || (!(dictEnvs.contains(flexosCurrentEnv[i])) ) ) {
                 var newName = scene + "_autosave_" + i.toString();
                 autosaveEnv(i,newName) 
                 flexosCurrentEnv[i] = newName;
             }
         }
+
         write_scene_to_dict(scene);
         writeSceneToHistory(scene);
         outlet(OUTLET_REFRESH, "refresh_scene_menu");
@@ -697,18 +725,37 @@
     function write_scene_to_dict(scene) { 
         // SAVE CLOCK
         dictPresets.replace(scene + keyClock, data[DATAIDX_clock]);
-        for (var i = 0; i < NFLEX.length; i++) {
+        if (DEBUGGING_SCENE) {
+            post(keyClock, " ", data[DATAIDX_clock], "\n")
+        }
+        for (var i = 0; i < NFLEX; i++) {
             // SAVE FLEX MUTE
-            dictPresets.replace(key_constructor_flexMute(scene,i),data[DATAIDX_flexMute]);
+            if (DEBUGGING_SCENE) {
+                post(key_constructor_flexMute(scene,i), " ", data[DATAIDX_flexs][i][DATAIDX_FLEX_mute]); //data[CLOCK_DEFAULT,[ [0] ] ]
+            }
+            dictPresets.replace(key_constructor_flexMute(scene,i),data[DATAIDX_flexs][i][DATAIDX_FLEX_mute]);
             // SAVE FLEX ENVS
+            if (DEBUGGING_SCENE) {
+                post(key_constructor_flexEnv(scene,i), " ", flexosCurrentEnv[i], "\n")
+            }
             dictPresets.replace(key_constructor_flexEnv(scene,i) , flexosCurrentEnv[i]);
 
             // GET PARAMETERS 
-            for (var j = 0; j < NFLEXPARS.length; j++) {
-                dictPresets.replace(key_constructor_flexPar(scene,i,j) , data[DATAIDX_flexParam]);
+            for (var j = 0; j < NFLEXPARS; j++) {
+                if (DEBUGGING_SCENE) {
+                    //data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_id] = id;
+                    post(key_constructor_flexPar(scene,i,j)+ "::id", " ", data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_id], "\n")
+                    post(key_constructor_flexPar(scene,i,j)+ "::min", " ", data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_min], "\n")
+                    post(key_constructor_flexPar(scene,i,j)+ "::max", " ", data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_max], "\n")
+                    post(key_constructor_flexPar(scene,i,j)+ "::exp", " ", data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_exp], "\n")
+                }
+                dictPresets.replace(key_constructor_flexPar(scene,i,j) + "::id" , data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_id]);
+                dictPresets.replace(key_constructor_flexPar(scene,i,j) + "::min" , data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_min]);
+                dictPresets.replace(key_constructor_flexPar(scene,i,j) + "::max" , data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_max]);
+                dictPresets.replace(key_constructor_flexPar(scene,i,j) + "::exp" , data[DATAIDX_flexs][i][DATAIDX_FLEX_params][j][DATAIDX_FLEX_PAR_exp]);
             }
         }
-        outlet(2,"PRESET " + scene + " stored succesfully");
+        outlet(2,"PRESET " + scene + " stored succesfully");DATAIDX_FLEX_PAR_min
         outlet(1, "refresh");
     }
 
@@ -784,8 +831,8 @@
                 }
             }
             //post("midiCC: ", flexosValOutHist, "\n") 
-            outlet(OUTLET_RT_DATA,["flexoCC",flexosValOutHist[0],flexosValOutHist[1],flexosValOutHist[2],flexosValOutHist[3]]);
-            outlet(OUTLET_RT_DATA,["flexoToUI",curvedIns[0],curvedIns[1],curvedIns[2],curvedIns[3]]); 
+            outlet(OUTLET_RT_DATA,["flexoCC",flexosValOutHist[0],flexosValOutHist[1]]);
+            outlet(OUTLET_RT_DATA,["flexoToUI",curvedIns[0],curvedIns[1]]); 
                 //// idx, 0. 0. 0.521252 14.8 1. 127. (x: 0. to 1. ; y: 0 to 127)
             newFlexoDyns.length = 0; // reset
         }
@@ -806,53 +853,66 @@
     // UI TO DATA FUNCTIONS
     function muteFlex() { 
         if (initialised) {
-            var finger = arguments[0];
-            var flexIdx = FLEX_FINGERS.indexOf(finger); 
-            data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_mute]  = arguments[1]; 
+            var flexIdx = arguments[0];
+            var dataIdx = FLEX_FINGERS.indexOf(flexIdx); 
+            data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_mute]  = arguments[1]; 
         }
     } 
 
     function idParFlex() { 
-        if (initialised) {
-            //post("idParFlex, args: ",JSON.stringify(arguments),"\n")
-            var finger = arguments[0]
-            var flexIdx = FLEX_FINGERS.indexOf(finger); 
+        if (initialised) {      
+            var flexIdx = arguments[0]
+            var dataIdx = FLEX_FINGERS.indexOf(flexIdx); 
             var parIdx = arguments[1];
             var id = arguments[2];
-            data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_id] = id;
+            data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_id] = id;
+            if (DEBUGGING_DATA) {
+                post("flex ", flexIdx, ", data idx ", dataIdx, ", par ", parIdx, ", id: ",
+                    data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_id], "\n")
+            }
         }
     }
 
     function minParFlex() { 
-        if (initialised) {
-            //post("minParFlex, args: ",JSON.stringify(arguments),"\n")
-            var finger = arguments[0]
-            var flexIdx = FLEX_FINGERS.indexOf(finger); 
+        if (initialised) {            
+            var flexIdx = arguments[0]
+            var dataIdx = FLEX_FINGERS.indexOf(flexIdx); 
             var parIdx = arguments[1];
             var min = arguments[2];
-            data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_min] = min;
+            data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_min] = min;
+            if (DEBUGGING_DATA) {
+                post("flex ", flexIdx, ", data idx ", dataIdx, ", par ", parIdx, ", min: ",
+                    data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_min], "\n")
+            }
         }
     }
 
     function maxParFlex() { 
-        if (initialised) {
-            //post("maxParFlex, args: ",JSON.stringify(arguments),"\n")
-            var finger = arguments[0]
-            var flexIdx = FLEX_FINGERS.indexOf(finger); 
+        if (initialised) {         
+            var flexIdx = arguments[0]
+            var dataIdx = FLEX_FINGERS.indexOf(flexIdx); 
             var parIdx = arguments[1];
             var max = arguments[2];
-            data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_max] = max;
+            post("argument max ",max,"\n")
+            data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_max] = max;
+            if (DEBUGGING_DATA) {
+                post("flex ", flexIdx, ", data idx ", dataIdx, ", par ", parIdx, ", max: ",
+                    data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_max], "\n")
+            }
         }
     }
 
     function expParFlex() { 
-        if (initialised) {
-            //post("expParFlex, args: ",JSON.stringify(arguments),"\n")
-            var finger = arguments[0]
-            var flexIdx = FLEX_FINGERS.indexOf(finger); 
+        if (initialised) {      
+            var flexIdx = arguments[0]
+            var dataIdx = FLEX_FINGERS.indexOf(flexIdx); 
             var parIdx = arguments[1];
             var exp = arguments[2];
-            data[DATAIDX_flexs][flexIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_exp] = exp;
+            data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_exp] = exp;
+            if (DEBUGGING_DATA) {
+                post("flex ", flexIdx, ", data idx ", dataIdx, ", par ", parIdx, ", exp: ",
+                    data[DATAIDX_flexs][dataIdx][DATAIDX_FLEX_params][parIdx][DATAIDX_FLEX_PAR_exp], "\n")
+            }
         }
     }
 
