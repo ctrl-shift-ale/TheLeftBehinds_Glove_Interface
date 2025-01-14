@@ -3,6 +3,7 @@ from pythonosc import osc_server
 from pythonosc import osc_message_builder
 from pythonosc import udp_client
 import socket
+import time
 
 DEBUGGING = "NO_SENSORS" #"OFF", "SENSORS", "NO_SENSORS", "ALL"
 
@@ -31,7 +32,7 @@ def send_handshake_request():
 
 # Function to handle incoming /handshake response from ESP32
 def handle_handshake_response(address, *args):
-    print("Received handshake response from ESP32.")
+    print(f"Received handshake response from ESP32 at {time.ctime()}.")
 
 # Function to handle incoming /polling message from ESP32
 def handle_polling(address, *args):
@@ -62,6 +63,9 @@ def handle_power_mode(address, *args):
     message = f"/power_mode {' '.join(map(str, args))}"
     send_to_max(message)
 
+def handle_back_online(address, *args):
+    print(f"Control unit re-established connection with Wi-Fi at {time.ctime()}")
+
 # Function to send to Max/MSP via TDC
 def send_to_max(data):
     try:
@@ -77,7 +81,8 @@ def start_osc_server():
     osc_dispatcher.map("/polling", handle_polling)
     osc_dispatcher.map("/battery", handle_battery)
     osc_dispatcher.map("/battery-test", handle_battery_test)
-    osc_dispatcher.map("/sensors", handle_sensors) 
+    osc_dispatcher.map("/sensors", handle_sensors)  
+    osc_dispatcher.map("/back-online", handle_back_online)
     osc_dispatcher.map("/power-mode", handle_power_mode)
 
     # Start the OSC server, listening on port esp32_send_port
