@@ -78,6 +78,6 @@ Ensure the battery has enough charge to power the control unit for the duration 
 
 Additional Resources
 GitHub Repository: [TheLeftBehinds Glove Interface](https://github.com/ctrl-shift-ale/TheLeftBehinds_Glove_Interface)
-tutorial video on how to save/call scenes on Live plugin: https://drive.google.com/drive/folders/1V8O81qUjVRtdlBrQYh48ZpxaitHpn6vj?usp=sharing
+Extra documentation: [TheLeftBehinds pdf instructions and video tutorial](https://drive.google.com/drive/folders/1V8O81qUjVRtdlBrQYh48ZpxaitHpn6vj?usp=sharing)
 Contact: alessandro_quaranta@hotmail.com
 
