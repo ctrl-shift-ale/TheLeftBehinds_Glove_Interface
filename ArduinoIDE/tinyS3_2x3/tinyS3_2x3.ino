@@ -32,7 +32,7 @@ const char* PASSWORDS[] = {"DontLeaveMeBehind", "OtherNetwork_PW"};
 // Enum for network indices
 enum NetworkIndex {
   LEFTBEHINDS = 0,
-  OTHERNETWORK= 1
+  OTHERNETWORK_A = 1
 };
 const NetworkIndex selectedNetwork = LEFTBEHINDS;
 
