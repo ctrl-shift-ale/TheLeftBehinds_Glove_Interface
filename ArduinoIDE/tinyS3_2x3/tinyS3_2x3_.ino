@@ -1,4 +1,4 @@
-// this script is meant to work together with "Glove_Tiny_4x4.m4l" Max for Live device
+// this script is meant to work together with "Glove_Tiny_2x3.amxd" Max for Live device
 // please check https://github.com/ctrl-shift-ale/TheLeftBehinds_Glove_Interface
 
 #include <UMS3.h>
